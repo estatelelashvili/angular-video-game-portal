@@ -1,15 +1,59 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Game } from 'src/app/models';
+import { Subscription } from 'rxjs';
+import { ActivatedRoute, Params } from '@angular/router';
+import { HttpService } from 'src/app/services/http.service';
 
 @Component({
   selector: 'app-details',
   templateUrl: './details.component.html',
   styleUrls: ['./details.component.scss']
 })
-export class DetailsComponent implements OnInit {
+export class DetailsComponent implements OnInit, OnDestroy {
   gameRating = 0;
-  constructor() { }
+  gameId: string = '';
+  game: Game = {
+    id: 0,
+    background_image: '',
+    name: '',
+    released: '',
+    metacritic_url: '',
+    website: '',
+    description: '',
+    metacritic: 0,
+    genres: [],
+    parent_platforms: [],
+    publishers: [],
+    ratings: [],
+    screenshots: [],
+    trailers: [],
+  }
+  routeSub: Subscription = new Subscription();
+  gameSub: Subscription = new Subscription();
+
+  constructor(
+    private activatedRoute: ActivatedRoute,
+    private httpService: HttpService,
+  ) { }
 
   ngOnInit(): void {
+    this.routeSub = this.activatedRoute.params
+    .subscribe((params: Params) => {
+      this.gameId = params['id'];
+      this.getGameDetails(this.gameId);
+    });
+  }
+
+  getGameDetails(id: string): void{
+    this.gameSub = this.httpService
+      .getGameDetails(id)
+      .subscribe((gameResp: Game) => {
+        this.game = gameResp;
+
+        setTimeout(()=> {
+          this.gameRating = this.game.metacritic;
+        }, 1000);
+      });
   }
 
   getColor(value: number): string {
@@ -21,6 +65,16 @@ export class DetailsComponent implements OnInit {
       return '#f7aa38';
     } else{
       return '#ef4655';
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.gameSub){
+      this.gameSub.unsubscribe();
+    }
+
+    if (this.routeSub){
+      this.routeSub.unsubscribe();
     }
   }
 
